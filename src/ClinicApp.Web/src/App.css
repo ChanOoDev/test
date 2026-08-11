@@ -1,0 +1,66 @@
+.appointment-main {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.appointment-main h1 {
+  font-size: 1.5rem;
+  margin: 0 0 24px;
+}
+
+.appointment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.appointment-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.appointment-form input,
+.appointment-form select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.appointment-form button {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #1d6ae5;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.appointment-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ok-banner,
+.error-banner {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.ok-banner {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.error-banner {
+  background: #fdecea;
+  color: #b3261e;
+}

@@ -1,0 +1,61 @@
+using System.Text.Json.Serialization;
+using ClinicApp.Api.Middleware;
+using ClinicApp.Infrastructure;
+using ClinicApp.Infrastructure.Persistence;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenApi();
+
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<ClinicApp.Application.UseCases.Appointments.CreateAppointment.CreateAppointmentCommand>();
+    cfg.AddOpenBehavior(typeof(ClinicApp.Application.Behaviors.ValidationBehavior<,>));
+});
+
+builder.Services.AddValidatorsFromAssembly(
+    typeof(ClinicApp.Application.UseCases.Appointments.CreateAppointment.CreateAppointmentCommand).Assembly);
+
+builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services
+    .AddAuthentication("Stub")
+    .AddScheme<AuthenticationSchemeOptions, ClinicApp.Api.Auth.StubAuthHandler>("Stub", null);
+builder.Services.AddAuthorizationBuilder();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+var app = builder.Build();
+
+// Apply migrations and seed on startup.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
+    await db.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(db);
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseMiddleware<AuthStubMiddleware>();
+app.UseExceptionHandler();
+app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+   .AllowAnonymous();
+
+app.MapControllers();
+
+app.Run();
+
+public partial class Program;
