@@ -3,11 +3,11 @@ Write-Host "Enterprise AI Engineering Platform v4"
 Write-Host "Checking required folders..."
 
 $required = @(
-  ".ai\agents",
-  ".ai\commands",
-  ".ai\templates",
-  ".ai\rules",
-  ".ai\governance",
+  ".claude\agents",
+  ".claude\commands",
+  ".claude\templates",
+  ".claude\rules",
+  ".claude\governance",
   "docs\prd"
 )
 
