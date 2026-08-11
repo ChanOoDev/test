@@ -51,8 +51,18 @@ app.UseMiddleware<AuthStubMiddleware>();
 app.UseExceptionHandler();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
-   .AllowAnonymous();
+app.MapGet("/health", async (ClinicDbContext db, CancellationToken ct) =>
+{
+    var dbOk = await db.Database.CanConnectAsync(ct);
+    return Results.Ok(new
+    {
+        status = dbOk ? "ok" : "degraded",
+        version = "4.0.0",
+        database = dbOk ? "ok" : "unreachable",
+        utc = DateTimeOffset.UtcNow,
+    });
+})
+.AllowAnonymous();
 
 app.MapControllers();
 
