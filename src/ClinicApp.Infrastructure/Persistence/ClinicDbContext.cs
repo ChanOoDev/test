@@ -33,6 +33,16 @@ public class ClinicDbContext(DbContextOptions<ClinicDbContext> options) : DbCont
 
             // Index for day views (S2) and conflict scans.
             b.HasIndex(a => new { a.DoctorId, a.StartUtc });
+
+            // Read-side projections join patient/doctor names.
+            b.HasOne(a => a.Patient)
+                .WithMany()
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(a => a.Doctor)
+                .WithMany()
+                .HasForeignKey(a => a.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Person>(b =>

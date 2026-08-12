@@ -1,4 +1,5 @@
 using ClinicApp.Application.Abstractions;
+using ClinicApp.Application.UseCases.Appointments.GetDayAppointments;
 using ClinicApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,4 +42,38 @@ public class AppointmentRepository(ClinicDbContext db) : IAppointmentRepository
     public async Task<bool> DoctorExistsAsync(Guid doctorId, CancellationToken ct = default)
         => await db.People.AnyAsync(
             p => p.Id == doctorId && p.Role == PersonRole.Doctor && p.IsActive, ct);
+
+    public async Task<List<DayAppointmentDto>> GetDayAsync(
+        DateOnly day,
+        Guid? doctorId,
+        AppointmentStatus? status,
+        CancellationToken ct = default)
+    {
+        // UTC day window in ticks — SQLite can't translate DateTimeOffset comparisons.
+        var startTicks = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).UtcTicks;
+        var endTicks = new DateTimeOffset(day.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).UtcTicks;
+
+        var query = db.Appointments
+            .Where(a => a.StartUtcTicks >= startTicks && a.StartUtcTicks < endTicks);
+
+        if (doctorId is not null)
+            query = query.Where(a => a.DoctorId == doctorId);
+
+        if (status is not null)
+            query = query.Where(a => a.Status == status);
+
+        return await query
+            .OrderBy(a => a.StartUtcTicks)
+            .Select(a => new DayAppointmentDto(
+                a.Id,
+                a.PatientId,
+                a.Patient.Name,
+                a.DoctorId,
+                a.Doctor.Name,
+                a.StartUtc,
+                a.SlotMinutes,
+                a.Status,
+                a.Reason))
+            .ToListAsync(ct);
+    }
 }

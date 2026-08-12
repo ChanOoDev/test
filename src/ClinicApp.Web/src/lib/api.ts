@@ -22,6 +22,52 @@ export interface CreateAppointmentInput {
   reason?: string
 }
 
+export interface DayAppointment {
+  id: string
+  patientId: string
+  patientName: string
+  doctorId: string
+  doctorName: string
+  startUtc: string
+  slotMinutes: number
+  status: string
+  reason: string
+}
+
+export interface GetDayInput {
+  date: string // YYYY-MM-DD
+  doctorId?: string
+  status?: string
+}
+
+export async function getDayAppointments(
+  input: GetDayInput,
+): Promise<DayAppointment[]> {
+  const params = new URLSearchParams({ date: input.date })
+  if (input.doctorId) params.set('doctorId', input.doctorId)
+  if (input.status) params.set('status', input.status)
+
+  const res = await fetch(`/api/appointments?${params}`, {
+    headers: { ...AUTH_HEADERS },
+  })
+
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`
+    let code: string | undefined
+    try {
+      const body = await res.json()
+      if (body.detail) detail = body.detail
+      if (body.title) code = body.title
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiError(res.status, detail, code)
+  }
+
+  const body = await res.json()
+  return body.appointments as DayAppointment[]
+}
+
 export class ApiError extends Error {
   status: number
   code?: string

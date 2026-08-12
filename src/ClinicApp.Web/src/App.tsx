@@ -1,5 +1,10 @@
-import { useState } from 'react'
-import { createAppointment, ApiError } from './lib/api'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  createAppointment,
+  getDayAppointments,
+  ApiError,
+  type DayAppointment,
+} from './lib/api'
 import './App.css'
 
 // Stub master data (R4/A6) — patients and doctors seeded in the backend.
@@ -11,13 +16,23 @@ const DOCTORS = [
   { id: '22222222-2222-2222-2222-222222222201', name: 'Dr. Alice' },
   { id: '22222222-2222-2222-2222-222222222202', name: 'Dr. Bob' },
 ]
+const STATUSES = ['scheduled', 'checked_in', 'completed', 'cancelled']
 
 // Local time → ISO 8601 UTC string for the API.
 function toUtcIso(date: Date): string {
   return date.toISOString()
 }
 
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function formatTime(utcIso: string): string {
+  return new Date(utcIso).toLocaleString()
+}
+
 function App() {
+  // Create form state
   const [patientId, setPatientId] = useState(PATIENTS[0].id)
   const [doctorId, setDoctorId] = useState(DOCTORS[0].id)
   const [start, setStart] = useState('')
@@ -25,6 +40,40 @@ function App() {
   const [slotMinutes, setSlotMinutes] = useState(30)
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Day view state
+  const [viewDate, setViewDate] = useState(today())
+  const [viewDoctorId, setViewDoctorId] = useState('')
+  const [viewStatus, setViewStatus] = useState('')
+  const [appointments, setAppointments] = useState<DayAppointment[]>([])
+  const [loading, setLoading] = useState(false)
+  const [viewError, setViewError] = useState<string | null>(null)
+
+  const loadDay = useCallback(async () => {
+    setLoading(true)
+    setViewError(null)
+    try {
+      const items = await getDayAppointments({
+        date: viewDate,
+        doctorId: viewDoctorId || undefined,
+        status: viewStatus || undefined,
+      })
+      setAppointments(items)
+    } catch (err) {
+      const text =
+        err instanceof ApiError
+          ? `${err.code ?? 'Error'}: ${err.message}`
+          : 'Failed to load the schedule.'
+      setViewError(text)
+      setAppointments([])
+    } finally {
+      setLoading(false)
+    }
+  }, [viewDate, viewDoctorId, viewStatus])
+
+  useEffect(() => {
+    void loadDay()
+  }, [loadDay])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,6 +97,7 @@ function App() {
       })
       setStart('')
       setReason('')
+      void loadDay()
     } catch (err) {
       const text =
         err instanceof ApiError
@@ -127,6 +177,73 @@ function App() {
           {message.text}
         </p>
       )}
+
+      <section className="day-view">
+        <h2>Day view</h2>
+        <div className="day-filters">
+          <label>
+            Date
+            <input
+              type="date"
+              value={viewDate}
+              onChange={(e) => setViewDate(e.target.value)}
+            />
+          </label>
+          <label>
+            Doctor
+            <select value={viewDoctorId} onChange={(e) => setViewDoctorId(e.target.value)}>
+              <option value="">All doctors</option>
+              {DOCTORS.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Status
+            <select value={viewStatus} onChange={(e) => setViewStatus(e.target.value)}>
+              <option value="">All statuses</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {loading && <p className="muted">Loading…</p>}
+        {viewError && <p className="error-banner" role="alert">{viewError}</p>}
+        {!loading && !viewError && appointments.length === 0 && (
+          <p className="muted">No appointments for this day.</p>
+        )}
+
+        {appointments.length > 0 && (
+          <table className="appointment-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Status</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appointments.map((a) => (
+                <tr key={a.id}>
+                  <td>{formatTime(a.startUtc)}</td>
+                  <td>{a.patientName}</td>
+                  <td>{a.doctorName}</td>
+                  <td>{a.status}</td>
+                  <td>{a.reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </main>
   )
 }

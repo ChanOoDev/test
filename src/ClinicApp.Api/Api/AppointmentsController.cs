@@ -1,5 +1,7 @@
 using ClinicApp.Api.Auth;
 using ClinicApp.Application.UseCases.Appointments.CreateAppointment;
+using ClinicApp.Application.UseCases.Appointments.GetDayAppointments;
+using ClinicApp.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +29,23 @@ public class AppointmentsController(ISender mediator) : ControllerBase
 
         var result = await mediator.Send(command, ct);
         return Created($"/api/appointments/{result.Id}", result);
+    }
+
+    /// <summary>
+    /// Appointments for a single day. Receptionist/admin see all; a doctor sees
+    /// only their own (enforced server-side in the handler).
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = $"{ClinicRoles.Admin},{ClinicRoles.Receptionist},{ClinicRoles.Doctor}")]
+    public async Task<ActionResult<GetDayAppointmentsResponse>> GetDay(
+        [FromQuery] DateOnly date,
+        [FromQuery] Guid? doctorId = null,
+        [FromQuery] AppointmentStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var query = new GetDayAppointmentsQuery(date, doctorId, status);
+        var result = await mediator.Send(query, ct);
+        return Ok(result);
     }
 }
 
