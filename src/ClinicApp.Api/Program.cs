@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
+using ClinicApp.Api.Auth;
 using ClinicApp.Api.Middleware;
+using ClinicApp.Application.Abstractions;
 using ClinicApp.Infrastructure;
 using ClinicApp.Infrastructure.Persistence;
 using FluentValidation;
@@ -28,6 +30,10 @@ builder.Services
     .AddAuthentication("Stub")
     .AddScheme<AuthenticationSchemeOptions, ClinicApp.Api.Auth.StubAuthHandler>("Stub", null);
 builder.Services.AddAuthorizationBuilder();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUserService>();
+builder.Services.AddScoped<IDoctorLookup, DoctorLookup>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

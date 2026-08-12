@@ -18,6 +18,9 @@ public class Appointment
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public long RowVersion { get; private set; }
 
+    public Person? Patient { get; private set; }
+    public Person? Doctor { get; private set; }
+
     internal Appointment() { } // EF Core
 
     public Appointment(Guid patientId, Guid doctorId, DateTimeOffset startUtc, int slotMinutes, string reason)
